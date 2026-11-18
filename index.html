@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Minha Estante de Jogos</title>
+<style>
+:root{
+  --paper:#f4efe6; --card:#fffaf1; --ink:#1d1a16; --muted:#6f675b; --line:#d8cfbe;
+  --accent:#e2431d; --steam:#1b4f8a; --epic:#2b2b2b; --gog:#7b2fb5; --ea:#e4572e; --ubi:#0d84c6; --none:#9a8f7e;
+  --fav:#e2431d; --done:#2f6b4f;
+  --display: "Bahnschrift","DIN Condensed","Arial Narrow",sans-serif;
+  --body: "Segoe UI Variable Text","Segoe UI","Helvetica Neue",sans-serif;
+  --mono: "Cascadia Mono","Consolas",monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);
+  background-image:radial-gradient(rgba(0,0,0,.035) 1px,transparent 1px);background-size:4px 4px;padding-bottom:80px}
+.wrap{max-width:1240px;margin:0 auto;padding:0 28px}
+
+header{padding:46px 0 26px;border-bottom:2px solid var(--ink);display:grid;grid-template-columns:minmax(0,1fr) auto;gap:24px;align-items:end}
+.kicker{font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent)}
+h1{font-family:var(--display);font-weight:700;font-stretch:condensed;font-size:clamp(46px,8vw,104px);line-height:.88;letter-spacing:-.01em;text-transform:uppercase;margin-top:10px}
+h1 em{font-style:normal;color:var(--accent)}
+.random{font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;background:var(--accent);color:#fff;border:2px solid var(--ink);box-shadow:4px 4px 0 var(--ink);padding:14px 18px;cursor:pointer;transition:transform .15s, box-shadow .15s;white-space:nowrap}
+.random:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--ink)}
+.random:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+.stats{grid-column:1/-1;display:flex;flex-wrap:wrap;border:1.5px solid var(--ink);background:var(--card)}
+.stat{flex:1 1 110px;padding:12px 16px;border-right:1.5px solid var(--ink);cursor:pointer;transition:background .15s}
+.stat:hover{background:#f1e7d4}
+.stat:last-child{border-right:0}
+.stat b{display:block;font-family:var(--display);font-size:34px;line-height:1}
+.stat span{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);display:flex;align-items:center;gap:6px}
+.stat span i{width:8px;height:8px;border-radius:50%}
+
+.bar{position:sticky;top:0;z-index:10;background:rgba(244,239,230,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:14px 0}
+.bar .wrap{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.search{flex:1 1 240px;display:flex;align-items:center;gap:8px;background:var(--card);border:1.5px solid var(--ink);padding:0 14px;height:42px}
+.search input{border:0;background:none;outline:none;font:inherit;font-size:15px;width:100%;color:var(--ink)}
+.search kbd{font-family:var(--mono);font-size:11px;color:var(--muted);border:1px solid var(--line);padding:1px 6px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-family:var(--mono);font-size:12px;letter-spacing:.03em;border:1.5px solid var(--ink);background:var(--card);padding:0 11px;height:42px;cursor:pointer;display:flex;align-items:center;gap:7px;color:var(--ink)}
+.chip i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.chip.on{background:var(--ink);color:var(--paper)}
+.chip small{opacity:.6}
+.sep{width:1.5px;height:28px;background:var(--line);margin:0 4px}
+select,.view{font-family:var(--mono);font-size:12px;height:42px;border:1.5px solid var(--ink);background:var(--card);padding:0 10px;color:var(--ink);cursor:pointer}
+
+.letters{display:flex;flex-wrap:wrap;gap:2px;margin:22px 0 6px}
+.letters a{font-family:var(--mono);font-size:12px;color:var(--muted);text-decoration:none;padding:4px 7px;border-radius:3px}
+.letters a:hover{background:var(--ink);color:var(--paper)}
+.letters a.off{opacity:.25;pointer-events:none}
+.result{font-family:var(--mono);font-size:12px;color:var(--muted);margin:8px 0 18px}
+
+.group h2{font-family:var(--display);font-size:42px;line-height:1;margin:26px 0 14px;display:flex;align-items:baseline;gap:12px;scroll-margin-top:90px}
+.group h2::after{content:"";flex:1;height:1.5px;background:var(--ink)}
+.group h2 small{font-family:var(--mono);font-size:12px;color:var(--muted);order:2}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:24px 18px}
+
+.card{cursor:pointer;opacity:0;transform:translateY(10px);animation:in .45s ease forwards;position:relative}
+@keyframes in{to{opacity:1;transform:none}}
+.cover{position:relative;aspect-ratio:3/4;overflow:hidden;border-radius:4px;box-shadow:0 1px 0 rgba(0,0,0,.08),0 8px 18px -10px rgba(0,0,0,.45);transition:transform .25s ease, box-shadow .25s ease}
+.card:hover .cover{transform:translateY(-5px) rotate(-.6deg);box-shadow:0 18px 28px -14px rgba(0,0,0,.55)}
+.cover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.art{position:absolute;inset:0;width:100%;height:100%}
+.ctitle{position:absolute;left:12px;right:12px;bottom:12px;font-family:var(--display);font-weight:700;text-transform:uppercase;line-height:.92;letter-spacing:-.005em;word-break:break-word}
+.cnum{position:absolute;top:10px;left:12px;font-family:var(--mono);font-size:10px;letter-spacing:.12em;opacity:.75}
+.stamp{position:absolute;top:10px;right:10px;display:flex;gap:4px}
+.stamp span{font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;padding:3px 6px;color:#fff;border-radius:2px;transform:rotate(3deg);box-shadow:0 1px 0 rgba(0,0,0,.2)}
+.meta{padding:9px 2px 0}
+.meta .t{font-size:14px;font-weight:600;line-height:1.25}
+.plats{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.tag{font-family:var(--mono);font-size:10px;letter-spacing:.05em;color:#fff;padding:2px 6px;border-radius:2px}
+.dup{font-family:var(--mono);font-size:10px;color:var(--accent);border:1px solid var(--accent);padding:1px 5px;border-radius:2px}
+
+/* list view */
+.list .grid{grid-template-columns:1fr;gap:0}
+.list .card{display:grid;grid-template-columns:44px minmax(0,1fr);gap:14px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.list .cover{aspect-ratio:3/4;border-radius:3px}
+.list .ctitle,.list .cnum,.list .stamp{display:none}
+.list .card:hover .cover{transform:none}
+.list .meta{padding:0;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.list .plats{margin:0}
+
+.empty{text-align:center;padding:80px 0;font-family:var(--display);font-size:30px;color:var(--muted)}
+
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(29,26,22,.55);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+.modal.open{display:flex}
+.sheet{position:relative;background:var(--paper);max-width:740px;width:100%;display:grid;grid-template-columns:250px minmax(0,1fr);border:2px solid var(--ink);box-shadow:10px 10px 0 var(--ink);animation:pop .3s cubic-bezier(.2,.9,.3,1.2)}
+@keyframes pop{from{transform:scale(.94) rotate(-1deg);opacity:0}}
+.sheet .cover{border-radius:0;box-shadow:none;transform:none!important}
+.info{padding:26px}
+.info h3{font-family:var(--display);font-size:38px;line-height:.95;text-transform:uppercase;padding-right:30px}
+.info p{font-size:14px;color:var(--muted);margin:14px 0 6px}
+.toggles{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.tg{font-family:var(--mono);font-size:12px;height:36px;padding:0 12px;border:1.5px solid var(--ink);background:var(--card);color:var(--ink);cursor:pointer}
+.tg.on.f{background:var(--fav);color:#fff;border-color:var(--fav)}
+.tg.on.d{background:var(--done);color:#fff;border-color:var(--done)}
+.info label{display:block;font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.1em;margin-top:22px;color:var(--muted)}
+.info input{width:100%;margin-top:6px;height:40px;border:1.5px solid var(--ink);background:var(--card);padding:0 10px;font:inherit;font-size:13px}
+.btns{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.btn{font-family:var(--mono);font-size:12px;height:36px;padding:0 14px;border:1.5px solid var(--ink);background:var(--ink);color:var(--paper);cursor:pointer}
+.btn.ghost{background:transparent;color:var(--ink)}
+.close{position:absolute;top:12px;right:12px;width:32px;height:32px;font-size:22px;line-height:1;color:var(--ink);background:var(--card);border:1.5px solid var(--ink);cursor:pointer;z-index:2}
+.note{font-size:12px;color:var(--muted);margin-top:40px;border-top:1px dashed var(--line);padding-top:14px;max-width:760px;line-height:1.55}
+@media(max-width:700px){header{grid-template-columns:1fr}.sheet{grid-template-columns:1fr}.sheet .cover{aspect-ratio:16/9}.grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}.sep{display:none}}
+@media print{.bar,.letters,.modal,.random{display:none!important}.card{animation:none;opacity:1;transform:none;break-inside:avoid}.grid{grid-template-columns:repeat(6,1fr)}}
+</style>
+</head>
+<body>
+
+<header class="wrap">
+  <div>
+    <div class="kicker">Biblioteca pessoal · Steam · Epic · GOG · EA · Ubisoft</div>
+    <h1>Minha estante<br>de <em>jogos</em></h1>
+  </div>
+  <button class="random" id="rand">🎲 O que eu jogo hoje?</button>
+  <div class="stats" id="stats"></div>
+</header>
+
+<div class="bar">
+  <div class="wrap">
+    <label class="search">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" placeholder="Procurar um jogo…" autocomplete="off">
+      <kbd>/</kbd>
+    </label>
+    <div class="chips" id="chips"></div>
+    <select id="sort" aria-label="Ordenar">
+      <option value="az">A → Z</option>
+      <option value="za">Z → A</option>
+      <option value="multi">Em mais lojas</option>
+    </select>
+    <button class="view" id="view">☰ Lista</button>
+  </div>
+</div>
+
+<main class="wrap">
+  <nav class="letters" id="letters"></nav>
+  <div class="result" id="result"></div>
+  <div id="out"></div>
+  <p class="note">Lista montada a partir da conversa com o Gemini. As capas são ilustrações geradas automaticamente; clique em um jogo para colocar a capa oficial (cole o link da imagem), marcar como favorito ou como zerado. Tudo fica salvo neste navegador. "Dishonored" e "The Lord of the Rings: Return to Moria" estavam na lista geral, mas sem loja indicada.</p>
+</main>
+
+<div class="modal" id="modal">
+  <div class="sheet">
+    <button class="close" id="x" aria-label="Fechar">×</button>
+    <div class="cover" id="mcover"></div>
+    <div class="info">
+      <h3 id="mtitle"></h3>
+      <div class="plats" id="mplats" style="margin-top:14px"></div>
+      <p id="mtext"></p>
+      <div class="toggles">
+        <button class="tg f" id="tfav">♥ Favorito</button>
+        <button class="tg d" id="tdone">✓ Zerado</button>
+      </div>
+      <label for="murl">Link da capa (imagem)</label>
+      <input id="murl" placeholder="https://…/capa.jpg">
+      <div class="btns">
+        <button class="btn" id="save">Salvar capa</button>
+        <button class="btn ghost" id="reset">Usar ilustração</button>
+        <button class="btn ghost" id="again" style="display:none">🎲 Sortear outro</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const P = {
+  S:{n:"Steam",c:"var(--steam)"}, E:{n:"Epic Games",c:"var(--epic)"}, G:{n:"GOG",c:"var(--gog)"},
+  A:{n:"EA App",c:"var(--ea)"}, U:{n:"Ubisoft Connect",c:"var(--ubi)"}, N:{n:"Sem loja",c:"var(--none)"}
+};
+const RAW = `12 is Better Than 6|S
+8:AM|S
+9 Years of Shadows|G
+AEONIC|S
+Amnesia: The Dark Descent|E
+Apex Legends|S
+Arcadegeddon|E
+ARK: Survival Evolved|E
+Asphalt Legends Unite|SE
+Assassin's Creed IV Black Flag|U
+Assetto Corsa|S
+Assetto Corsa Competizione|S
+Batman: Arkham Asylum GOTY|S
+Batman: Arkham City GOTY|S
+Batman: Arkham Knight|S
+Battlefield 1|S
+Battlefield 3|SA
+Battlefield 4|SA
+Battlefield V|SEA
+Beholder|E
+Beyond Blue|E
+BioShock|SG
+BioShock 2|S
+BioShock 2 Remastered|SE
+BioShock Infinite|SE
+BioShock Remastered|SEG
+BLACKTAIL|S
+Blasphemous|S
+Blood West|E
+Bloodstained: Ritual of the Night|E
+Borderlands 2|E
+Borderlands 3|E
+Borderlands: The Pre-Sequel|E
+Breathedge|SE
+Bully: Scholarship Edition|S
+Bunny Guys!|S
+Bunny Hurling|S
+Captain Tsubasa: Rise of New Champions|E
+Car Mechanic Simulator 2018|S
+Cast & Spell|S
+Cat Quest II|G
+Chuchel|E
+Close to the Sun|E
+Control|SE
+Counter-Strike 2|S
+Crystal Call|S
+Dakar Desert Rally|E
+Dark Souls II: Scholar of the First Sin|S
+darkSector|S
+Dead by Daylight|S
+Death's Door|SE
+Decimated|E
+Destiny 2|SE
+Dishonored|N
+Dishonored: Death of the Outsider|E
+Disney Speedstorm|S
+DOOM|S
+Doomies vs Brainrot|S
+Drift86|S
+Dying Light|S
+Eets Munchies|S
+eFootball|S
+En Garde!|G
+Eternights|E
+Euro Truck Simulator 2|S
+Fall Guys|E
+Fallout: New Vegas|G
+Flappy Bird|E
+Fortnite|E
+Geneforge 1 - Mutagen|E
+Genshin Impact|E
+Ghost Song|G
+Ghostrunner|E
+Ghostrunner 2|E
+Gloomhaven|E
+Godzilla Voxel Wars|E
+Golden Light|S
+Grand Theft Auto V|E
+Gravity Circuit|S
+GreedFall|G
+Half-Life 2|S
+Half-Life 2: Deathmatch|S
+Half-Life 2: Lost Coast|S
+Happy's Humble Burger Farm|S
+Hard West 2|G
+Hardspace: Shipbreaker|E
+Heavy Rain|S
+Hell Let Loose|E
+Hell Pie|G
+Hidden World 8 Top-Down 3D|S
+Hitman: Absolution|S
+Hogwarts Legacy|E
+Homefront|S
+Hood: Outlaws & Legends|E
+Hundred Days - Winemaking Simulator|E
+Hunting Simulator 2|S
+Iratus: Lord of the Dead|E
+Jotunnslayer: Hordes of Hel|E
+Just Cause 3|S
+LEGO Batman: The Videogame|S
+LEGO Batman 2: DC Super Heroes|S
+LEGO Batman 3: Beyond Gotham|S
+LEGO DC Super-Villains|S
+LEGO Jurassic World|S
+LEGO Marvel Super Heroes 2|S
+LEGO Star Wars: The Complete Saga|S
+LEGO Star Wars: The Skywalker Saga|E
+LEGO The Hobbit|SG
+LEGO The Lord of the Rings|SG
+Loop Hero|E
+Mad Max|S
+Mafia|S
+Mafia: Definitive Edition|G
+Marvel's Guardians of the Galaxy|E
+Metro 2033 Redux|S
+Middle-earth: Shadow of Mordor|S
+Midnight Fight Express|G
+Mini Ninjas|S
+Monster Hunter: World|S
+Moonlighter|SG
+Moonrise|S
+Mortal Kombat 11|S
+Mortal Kombat X|SE
+Mount & Blade II: Bannerlord|S
+MultiVersus|S
+Mushroom Day|S
+Necromunda: Hired Gun|E
+Nocturnal|S
+Orcs Must Die! 3|E
+Overcooked! 2|S
+PAYDAY 2|S
+Poly Bridge|S
+Priest Simulator: Vampire Show|E
+PUBG: BATTLEGROUNDS|S
+Realm Royale Reforged|S
+Remnant: From the Ashes|S
+Remnant II|S
+Resident Evil 4|S
+Resident Evil Village|S
+Ring of Pain|E
+Riverbond|E
+Rocket League|E
+Runbow|E
+Sable|E
+ScourgeBringer|E
+Shadow of the Tomb Raider: Definitive Edition|E
+Showgunners|G
+Sifu|E
+skate.|SA
+Sniper Elite 3|S
+Sniper Elite 5|S
+Sniper Ghost Warrior Contracts|E
+Songs of Silence|E
+SOS OPS!|S
+Soulstice|E
+Spirit of the North|E
+Star Wars: Squadrons|E
+STASIS: BONE TOTEM|E
+State of Decay: Year-One Survival Edition|S
+Stray Gods: The Roleplaying Musical|G
+Submerged: Hidden Depths|E
+Super Crazy Rhythm Castle|E
+Super Meat Boy Forever|E
+Supraland|E
+SurrounDead|S
+Tainted Grail: Fall of Avalon|S
+Tales from the Borderlands|E
+Tekken 7|S
+The Chess Lv.100|E
+The Drone Racing League Simulator|E
+The Elder Scrolls II: Daggerfall|S
+The Elder Scrolls V: Skyrim|S
+The Eternal Cylinder|E
+The Forest|S
+The Last Stand: Aftermath|E
+The Lord of the Rings: Return to Moria|N
+The Red Lantern|S
+The Witcher: Enhanced Edition|S
+theHunter: Call of the Wild|S
+Throne and Liberty|S
+Tomb Raider: Legend|G
+Tormented Souls|S
+Total War: Three Kingdoms|E
+Total War: Warhammer|E
+Trackmania|SE
+Train Sim World 2|E
+Trek to Yomi|E
+Trine Enchanted Edition|E
+Trine 2: Complete Story|E
+Trine 3: The Artifacts of Power|E
+Trine 4: The Nightmare Prince|E
+Under Construction|S
+Undertale|S
+UNDYING|S
+Unloved|S
+Unplugged|S
+Unturned|S
+Vampire's Fall: Origins|S
+Warhammer 40,000: Darktide|S
+Warhammer 40,000: Gladius - Relics of War|S
+Warhammer 40,000: Mechanicus|S
+Warhammer 40,000: Space Marine|S
+Warhammer: End Times - Vermintide|S
+Warm Rush|S
+We Were Here|S
+What the Fog|S
+Wild Terra 2: New Lands|S
+Wizard101|S
+Wolfenstein: The New Order|E
+World of Tanks|S
+World of Warships|E
+WRC 7|S
+XCOM 2|S
+Yu-Gi-Oh! Master Duel|S
+Zero Hour|E
+Zoeti|E
+Zomborg|S`;
+
+const games = RAW.split("\n").map((l,i)=>{const [t,p]=l.split("|");return {t,p:p.split(""),id:i}});
+const isDup = g => g.p.filter(c=>c!=="A"&&c!=="N").length>1;
+
+/* --- saved data --- */
+const load=k=>JSON.parse(localStorage.getItem(k)||"{}");
+const store=load("capas"), favs=load("favoritos"), done=load("zerados");
+const save=()=>{localStorage.setItem("capas",JSON.stringify(store));localStorage.setItem("favoritos",JSON.stringify(favs));localStorage.setItem("zerados",JSON.stringify(done))};
+
+/* --- generated cover art --- */
+const PALS=[["#e2431d","#f6d28b","#1d1a16"],["#1b4f8a","#9fd3e6","#fffaf1"],["#2f6b4f","#d9e8a6","#fffaf1"],["#f2b134","#1d1a16","#1d1a16"],
+["#7b2fb5","#ffb3c7","#fffaf1"],["#0e7c86","#ffd166","#fffaf1"],["#c8102e","#1d1a16","#fffaf1"],["#efe3c8","#e2431d","#1d1a16"],
+["#253c78","#f28c28","#fffaf1"],["#8a5a44","#f1c27d","#fffaf1"],["#111111","#e8ff59","#e8ff59"],["#ff7a59","#2b2d42","#2b2d42"],
+["#3a86ff","#ffbe0b","#fffaf1"],["#5c946e","#f4efe6","#fffaf1"],["#d1495b","#edae49","#fffaf1"],["#00a6a6","#efca08","#1d1a16"]];
+function hash(s){let h=2166136261;for(const c of s){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0}
+function art(t){
+  const h=hash(t),[bg,ac,fg]=PALS[h%PALS.length],k=(h>>4)%5;
+  let shape="";
+  if(k===0) shape=`<circle cx="${60+(h>>3)%90}" cy="${70+(h>>5)%60}" r="${55+(h>>7)%35}" fill="${ac}"/>`;
+  else if(k===1){for(let i=0;i<9;i++) shape+=`<rect x="-60" y="${i*26}" width="320" height="11" fill="${ac}" transform="rotate(${-20+(h%40)} 100 130)"/>`}
+  else if(k===2){for(let x=0;x<7;x++)for(let y=0;y<6;y++) if((h>>(x+y))&1) shape+=`<rect x="${x*30}" y="${y*30}" width="30" height="30" fill="${ac}"/>`}
+  else if(k===3) shape=`<polygon points="0,0 200,0 ${(h>>3)%200},${120+(h>>6)%60}" fill="${ac}"/><circle cx="150" cy="60" r="18" fill="${fg}" opacity=".85"/>`;
+  else {for(let i=0;i<6;i++) shape+=`<circle cx="100" cy="${(h>>4)%80+20}" r="${20+i*22}" fill="none" stroke="${ac}" stroke-width="7"/>`}
+  return {fg,svg:`<svg class="art" viewBox="0 0 200 267" preserveAspectRatio="xMidYMid slice"><rect width="200" height="267" fill="${bg}"/><g opacity=".95">${shape}</g><rect y="150" width="200" height="117" fill="url(#f${h})"/><defs><linearGradient id="f${h}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${bg}" stop-opacity="0"/><stop offset=".55" stop-color="${bg}" stop-opacity=".92"/></linearGradient></defs></svg>`};
+}
+function esc(s){return s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+function coverHTML(g){
+  const a=art(g.t), len=g.t.length, fs=len<10?30:len<18?24:len<28?19:15;
+  const img=store[g.t]?`<img src="${esc(store[g.t])}" alt="" onerror="this.remove()">`:"";
+  const st=(favs[g.t]?`<span style="background:var(--fav)">♥ Fav</span>`:"")+(done[g.t]?`<span style="background:var(--done)">✓ Zerado</span>`:"");
+  return `${a.svg}<span class="cnum" style="color:${a.fg}">Nº ${String(g.id+1).padStart(3,"0")}</span><span class="ctitle" style="color:${a.fg};font-size:${fs}px">${esc(g.t)}</span>${img}<span class="stamp">${st}</span>`;
+}
+const tags=p=>p.map(c=>`<span class="tag" style="background:${P[c].c}">${P[c].n}</span>`).join("");
+
+/* --- filters --- */
+let filt="ALL";
+const FILTERS={ALL:()=>true,DUP:isDup,FAV:g=>favs[g.t],DONE:g=>done[g.t]};
+const match=g=>(FILTERS[filt]||(x=>x.p.includes(filt)))(g);
+const count=c=>games.filter(g=>g.p.includes(c)).length;
+
+function setFilter(f){filt=f;[...chipsEl.querySelectorAll(".chip")].forEach(x=>x.classList.toggle("on",x.dataset.f===f));render()}
+function drawStats(){
+  document.getElementById("stats").innerHTML=
+    `<div class="stat" data-f="ALL"><b>${games.length}</b><span>Jogos</span></div>`+
+    ["S","E","G","A","U"].map(c=>`<div class="stat" data-f="${c}"><b>${count(c)}</b><span><i style="background:${P[c].c}"></i>${P[c].n}</span></div>`).join("")+
+    `<div class="stat" data-f="DUP"><b>${games.filter(isDup).length}</b><span>Em 2+ lojas</span></div>`+
+    `<div class="stat" data-f="DONE"><b>${Object.keys(done).length}</b><span><i style="background:var(--done)"></i>Zerados</span></div>`;
+}
+document.getElementById("stats").onclick=e=>{const s=e.target.closest(".stat");if(s)setFilter(s.dataset.f)};
+const chipsEl=document.getElementById("chips");
+chipsEl.innerHTML=`<button class="chip on" data-f="ALL">Todas</button>`+["S","E","G","A","U","N"].map(c=>`<button class="chip" data-f="${c}"><i style="background:${P[c].c}"></i>${P[c].n} <small>${count(c)}</small></button>`).join("")+
+  `<span class="sep"></span><button class="chip" data-f="DUP">Repetidos</button><button class="chip" data-f="FAV">♥ Favoritos</button><button class="chip" data-f="DONE">✓ Zerados</button>`;
+chipsEl.onclick=e=>{const b=e.target.closest(".chip");if(b)setFilter(b.dataset.f)};
+const q=document.getElementById("q"), sortEl=document.getElementById("sort");
+q.oninput=render; sortEl.onchange=render;
+document.addEventListener("keydown",e=>{if(e.key==="/"&&document.activeElement!==q&&document.activeElement.tagName!=="INPUT"){e.preventDefault();q.focus()}});
+
+let listView=localStorage.getItem("vista")==="lista";
+const viewBtn=document.getElementById("view");
+function applyView(){document.getElementById("out").classList.toggle("list",listView);viewBtn.textContent=listView?"▦ Capas":"☰ Lista"}
+viewBtn.onclick=()=>{listView=!listView;localStorage.setItem("vista",listView?"lista":"capas");applyView()};
+
+/* --- render --- */
+const first=t=>{const c=t.replace(/^the\s+/i,"")[0].toUpperCase();return /[A-Z]/.test(c)?c:"#"};
+function render(){
+  drawStats();
+  const s=q.value.trim().toLowerCase();
+  let list=games.filter(g=>(!s||g.t.toLowerCase().includes(s))&&match(g));
+  const so=sortEl.value;
+  list.sort((a,b)=>so==="multi"?(b.p.length-a.p.length)||a.t.localeCompare(b.t):so==="za"?b.t.localeCompare(a.t):a.t.localeCompare(b.t));
+  document.getElementById("result").textContent=`${list.length} de ${games.length} jogos`;
+  const out=document.getElementById("out");
+  if(!list.length){out.innerHTML=`<div class="empty">${filt==="FAV"?"Nenhum favorito ainda. Clique em um jogo e marque ♥.":filt==="DONE"?"Nenhum jogo zerado marcado ainda.":"Nenhum jogo encontrado."}</div>`;document.getElementById("letters").innerHTML="";return}
+  const groups={};
+  if(so==="multi") groups["Por nº de lojas"]=list; else list.forEach(g=>{(groups[first(g.t)]??=[]).push(g)});
+  let n=0;
+  out.innerHTML=Object.keys(groups).map(k=>`<section class="group"><h2 id="L-${k}">${k}<small>${groups[k].length}</small></h2><div class="grid">${groups[k].map(g=>{n++;
+    return `<article class="card" data-id="${g.id}" style="animation-delay:${Math.min(n,24)*25}ms"><div class="cover">${coverHTML(g)}</div><div class="meta"><div class="t">${favs[g.t]?"♥ ":""}${esc(g.t)}</div><div class="plats">${tags(g.p)}${isDup(g)?'<span class="dup">2+ lojas</span>':""}</div></div></article>`}).join("")}</div></section>`).join("");
+  const all="#ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+  document.getElementById("letters").innerHTML=so==="multi"?"":all.map(l=>`<a href="#L-${l}" class="${groups[l]?"":"off"}">${l}</a>`).join("");
+  applyView();
+}
+render();
+
+/* --- modal --- */
+const modal=document.getElementById("modal");let cur=null,fromRandom=false;
+document.getElementById("out").onclick=e=>{const c=e.target.closest(".card");if(!c)return;cur=games[+c.dataset.id];fromRandom=false;openM()};
+function openM(){
+  document.getElementById("mcover").innerHTML=coverHTML(cur);
+  document.getElementById("mtitle").textContent=cur.t;
+  document.getElementById("mplats").innerHTML=tags(cur.p);
+  const real=cur.p.filter(c=>c!=="A"&&c!=="N").length;
+  document.getElementById("mtext").textContent=fromRandom?"Sorteado entre os jogos que você ainda não marcou como zerados.":
+    cur.p.includes("N")?"Este jogo aparece na sua lista, mas sem loja indicada.":real>1?`Você tem este jogo em ${real} lojas diferentes.`:`Está na sua biblioteca ${P[cur.p[0]].n}.`+(cur.p.includes("A")?" Vinculado também ao EA App.":"");
+  document.getElementById("murl").value=store[cur.t]||"";
+  document.getElementById("tfav").classList.toggle("on",!!favs[cur.t]);
+  document.getElementById("tdone").classList.toggle("on",!!done[cur.t]);
+  document.getElementById("again").style.display=fromRandom?"":"none";
+  modal.classList.add("open");
+}
+function pickRandom(){const pool=games.filter(g=>!done[g.t]&&match(g));const src=pool.length?pool:games;cur=src[Math.floor(Math.random()*src.length)];fromRandom=true;openM()}
+document.getElementById("rand").onclick=pickRandom;
+document.getElementById("again").onclick=pickRandom;
+const closeM=()=>modal.classList.remove("open");
+document.getElementById("x").onclick=closeM;
+modal.onclick=e=>{if(e.target===modal)closeM()};
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeM()});
+const toggle=(obj)=>{if(obj[cur.t])delete obj[cur.t];else obj[cur.t]=1;save();openM();render()};
+document.getElementById("tfav").onclick=()=>toggle(favs);
+document.getElementById("tdone").onclick=()=>toggle(done);
+document.getElementById("save").onclick=()=>{const u=document.getElementById("murl").value.trim();if(u)store[cur.t]=u;else delete store[cur.t];save();openM();render()};
+document.getElementById("reset").onclick=()=>{delete store[cur.t];save();openM();render()};
+</script>
+</body>
+</html>
